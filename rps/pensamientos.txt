@@ -1,0 +1,6 @@
+Antes de seguir:
+
+
+- Por que no agregar algo que para cuando la performance sea mayor a cierta cantidad, (o perfecta)
+  deje de explorar
+- hacer graficos con tiempo: por ej. cuantas rondas gano de las ultimas 20, y un grafico lineal así
