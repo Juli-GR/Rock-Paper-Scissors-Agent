@@ -28,6 +28,18 @@ class Player(ABC):
     def observe(self, own: Move, other: Move, reward: int) -> None:
         """Recibe el resultado de la ronda. Por defecto no hace nada."""
 
+    def params(self) -> dict:
+        """Configuración que define al jugador (para registrar experimentos)."""
+        return {}
+
+    def state_dict(self) -> dict:
+        """Lo aprendido, serializable a JSON. Vacío si no aprende nada."""
+        return {}
+
+    def __repr__(self) -> str:
+        args = ", ".join(f"{k}={v!r}" for k, v in self.params().items())
+        return f"{type(self).__name__}({args})"
+
 
 def play_match(p1: Player, p2: Player, rounds: int) -> list[int]:
     """Juega `rounds` rondas y devuelve las rewards desde el punto de vista de `p1`."""

@@ -13,8 +13,8 @@ class QLearningAgent(Player):
     """
 
     def __init__(self, memory=2, alpha=0.1, gamma=0.0, epsilon=0.1, patience=None, seed=None):
-        self.alpha, self.gamma, self.epsilon = alpha, gamma, epsilon
-        self.patience = patience
+        self.memory, self.alpha, self.gamma, self.epsilon = memory, alpha, gamma, epsilon
+        self.patience, self.seed = patience, seed
         self.rng = random.Random(seed)
         self.q = defaultdict(lambda: [0.0] * len(MOVES))  # estado -> valor de cada acción
         self.history = deque(maxlen=memory)
@@ -41,3 +41,13 @@ class QLearningAgent(Player):
         target = reward + self.gamma * max(self.q[self.state])
         self.q[state][own] += self.alpha * (target - self.q[state][own])
         self.streak = self.streak + 1 if reward > 0 else 0
+
+    def params(self):
+        return {"memory": self.memory, "alpha": self.alpha, "gamma": self.gamma,
+                "epsilon": self.epsilon, "patience": self.patience, "seed": self.seed}
+
+    def state_dict(self):
+        """La Q-table: {"ROCK,PAPER": {"ROCK": q, "PAPER": q, "SCISSORS": q}, ...}."""
+        return {",".join(m.name for m in state) or "(sin historia)":
+                {m.name: round(v, 4) for m, v in zip(MOVES, values)}
+                for state, values in self.q.items()}

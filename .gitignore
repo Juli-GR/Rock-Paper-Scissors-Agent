@@ -1,4 +1,7 @@
 venv/
 __pycache__/
 *.log
-results.png
+
+# MLflow (resultados locales de experimentos)
+mlruns/
+mlflow.db

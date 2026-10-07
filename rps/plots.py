@@ -12,7 +12,7 @@ def blocks(rewards: list[int], size: int):
     return (r == 1).sum(1), (r == 0).sum(1), (r == -1).sum(1)
 
 
-def plot_results(results: dict[str, list[int]], block=20, path="results.png"):
+def plot_results(results: dict[str, list[int]], block=20):
     """Arriba: score por bloque. Abajo: de qué está hecho ese score (W/T/L)."""
     n = len(results)
     fig, axes = plt.subplots(2, n, figsize=(4 * n, 6), sharex=True, sharey="row", squeeze=False)
@@ -44,5 +44,4 @@ def plot_results(results: dict[str, list[int]], block=20, path="results.png"):
     handles, labels = axes[1, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(path, dpi=120)
-    plt.close(fig)
+    return fig
