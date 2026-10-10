@@ -7,7 +7,7 @@ from rps.opponents import (DriftPlayer, HumanLikePlayer, MarkovPlayer, Noisy, Ra
 from rps.tracking import LAST, log_run, summarize
 
 ROUNDS = 1000
-AGENT = {"memory": 2, "alpha": 0.1, "gamma": 0.0, "epsilon": 0.1, "patience": 20, "seed": 0}
+AGENT = {"memory": 2, "own_memory": 1, "alpha": 0.1, "gamma": 0.0, "epsilon": 0.1, "patience": 20, "seed": 0}
 
 
 def make_opponents() -> dict:
