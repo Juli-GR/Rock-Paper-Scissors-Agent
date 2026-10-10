@@ -7,7 +7,10 @@ from rps.opponents import (DriftPlayer, HumanLikePlayer, MarkovPlayer, Noisy, Ra
 from rps.tracking import LAST, log_run, summarize
 
 ROUNDS = 1000
-AGENT = {"memory": 2, "own_memory": 1, "alpha": 0.1, "gamma": 0.0, "epsilon": 0.1, "patience": 20, "seed": 0}
+# El mejor Q-learning hasta ahora. También es el oponente de self_play.
+Q_AGENT = {"memory": 2, "own_memory": 1, "alpha": 0.1, "gamma": 0.0, "epsilon": 0.1, "patience": 20, "seed": 0}
+# El agente que se evalúa: (clase, parámetros).
+AGENT = (MarkovPlayer, {"order": 2, "own_order": 1, "seed": 0})
 
 
 def make_opponents() -> dict:
@@ -28,7 +31,7 @@ def make_opponents() -> dict:
         # adaptativos
         "frequency": MarkovPlayer(order=0, seed=9),
         "markov": MarkovPlayer(order=1, seed=10),
-        "self_play": QLearningAgent(**{**AGENT, "seed": 11}),
+        "self_play": QLearningAgent(**{**Q_AGENT, "seed": 11}),
         # humano sintético y combinados
         "human": HumanLikePlayer(seed=12),
         "noisy_cycle": Noisy(SequencePlayer("RPS"), p=0.2, seed=13),
@@ -39,9 +42,10 @@ def make_opponents() -> dict:
 
 def main():
     opponents = make_opponents()
+    agent_class, agent_params = AGENT
     agents, results = {}, {}
     for name, opponent in opponents.items():
-        agent = agents[name] = QLearningAgent(**AGENT)  # uno nuevo por oponente
+        agent = agents[name] = agent_class(**agent_params)  # uno nuevo por oponente
         results[name] = play_match(agent, opponent, ROUNDS)
         s = summarize(results[name])
         print(f"{name:>11}: W {s['wins']:4}  T {s['ties']:4}  L {s['losses']:4}  "
