@@ -8,7 +8,10 @@ from .env import MOVES, Move, Player
 class QLearningAgent(Player):
     """Q-learning tabular. El estado son las últimas `memory` jugadas del oponente.
 
-    Con `patience`, deja de explorar tras `patience` victorias seguidas y vuelve a
+    alpha: velocidad con la que aprende (cuánto pesa lo nuevo frente a lo que ya sabía).
+    gamma: horizonte de lo que le importa (solo esta ronda, o también las siguientes).
+
+    patience: deja de explorar tras `patience` victorias seguidas y vuelve a
     explorar en cuanto no gana una ronda.
     """
 

@@ -18,6 +18,11 @@ def reward(a: Move, b: Move) -> int:
     return (0, 1, -1)[(a - b) % 3]
 
 
+def beats(move: Move) -> Move:
+    """La jugada que le gana a `move`."""
+    return Move((move + 1) % 3)
+
+
 class Player(ABC):
     """Todo lo que juega (oponentes programados y, más adelante, agentes de RL)."""
 

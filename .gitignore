@@ -5,3 +5,7 @@ __pycache__/
 # MLflow (resultados locales de experimentos)
 mlruns/
 mlflow.db
+
+pensamientos.txt
+notas.txt
+to_do.txt

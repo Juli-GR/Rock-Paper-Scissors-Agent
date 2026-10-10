@@ -12,14 +12,23 @@ def blocks(rewards: list[int], size: int):
     return (r == 1).sum(1), (r == 0).sum(1), (r == -1).sum(1)
 
 
-def plot_results(results: dict[str, list[int]], block=20):
-    """Arriba: score por bloque. Abajo: de qué está hecho ese score (W/T/L)."""
+def plot_results(results: dict[str, list[int]], block=20, cols=4):
+    """Un panel por oponente, en una grilla de `cols` columnas.
+
+    Arriba: score por bloque. Abajo: de qué está hecho ese score (W/T/L).
+    """
     n = len(results)
-    fig, axes = plt.subplots(2, n, figsize=(4 * n, 6), sharex=True, sharey="row", squeeze=False)
-    for col, (name, rewards) in enumerate(results.items()):
+    cols = min(n, cols)
+    rows = -(-n // cols)  # división redondeando hacia arriba
+    fig = plt.figure(figsize=(4 * cols, 4.5 * rows + 0.5), layout="constrained")
+    panels = np.atleast_1d(fig.subfigures(rows, cols)).ravel()
+    for panel in panels[n:]:
+        panel.set_visible(False)
+
+    for i, (panel, (name, rewards)) in enumerate(zip(panels, results.items())):
         w, t, l = blocks(rewards, block)
         x = np.arange(len(w)) * block + block / 2  # centro de cada bloque, en rondas
-        top, bottom = axes[:, col]
+        top, bottom = panel.subplots(2, 1, sharex=True)
 
         top.set_title(name)
         top.plot(x, w - l, color=INK, lw=2)
@@ -33,15 +42,15 @@ def plot_results(results: dict[str, list[int]], block=20):
             base = base + counts
         bottom.set_ylim(0, block)
         bottom.set_xlabel("ronda")
+        if i % cols == 0:
+            top.set_ylabel(f"score cada {block}")
+            bottom.set_ylabel(f"rondas (de {block})")
 
         for ax in (top, bottom):
             ax.grid(axis="y", color=GRID)
             ax.set_axisbelow(True)
             ax.spines[["top", "right"]].set_visible(False)
 
-    axes[0, 0].set_ylabel(f"score cada {block} rondas")
-    axes[1, 0].set_ylabel(f"rondas (de {block})")
-    handles, labels = axes[1, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    handles, labels = bottom.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="outside upper center", ncol=3, frameon=False)
     return fig

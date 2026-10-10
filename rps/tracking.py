@@ -29,11 +29,16 @@ def log_run(agents: dict[str, Player], opponents: dict[str, Player],
                            "rounds": rounds, "opponents": ",".join(opponents)})
         mlflow.log_params({f"opponent.{name}": repr(o) for name, o in opponents.items()})
 
-        for name, rewards in results.items():
-            mlflow.log_metrics({f"{name}.{k}": v for k, v in summarize(rewards).items()})
-            wins, _, losses = blocks(rewards, BLOCK)
-            for step, score in enumerate(wins - losses):
-                mlflow.log_metric(f"{name}.block_score", int(score), step=step)
+        summaries = {name: summarize(rewards) for name, rewards in results.items()}
+        mlflow.log_metrics({f"{name}.{k}": v for name, s in summaries.items() for k, v in s.items()})
+        # Resumen de todo el run, para comparar runs de un vistazo.
+        mlflow.log_metric(f"mean_score_last_{LAST}",
+                          sum(s[f"score_last_{LAST}"] for s in summaries.values()) / len(summaries))
+
+        curves = {name: blocks(rewards, BLOCK) for name, rewards in results.items()}
+        for step in range(min(len(w) for w, _, _ in curves.values())):
+            mlflow.log_metrics({f"{name}.block_score": int(w[step] - l[step])
+                                for name, (w, _, l) in curves.items()}, step=step)
 
         fig = plot_results(results, block=BLOCK)
         mlflow.log_figure(fig, "results.png")
