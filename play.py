@@ -1,5 +1,5 @@
 """Enfrenta al agente contra cada oponente, muestra los resultados y los registra en MLflow."""
-from rps.agents import QLearningAgent
+from rps.agents import QLearningAgent, RegretMatchingAgent
 from rps.env import play_match
 from rps.opponents import (DriftPlayer, HumanLikePlayer, MarkovPlayer, Noisy, RandomPlayer,
                            ReactivePlayer, RepeaterPlayer, SequencePlayer, Switcher,
@@ -10,7 +10,7 @@ ROUNDS = 1000
 # El mejor Q-learning hasta ahora. También es el oponente de self_play.
 Q_AGENT = {"memory": 2, "own_memory": 1, "alpha": 0.1, "gamma": 0.0, "epsilon": 0.1, "patience": 20, "seed": 0}
 # El agente que se evalúa: (clase, parámetros).
-AGENT = (MarkovPlayer, {"order": 2, "own_order": 1, "seed": 0})
+AGENT = (RegretMatchingAgent, {"memory": 2, "own_memory": 1, "decay": 0.95, "seed": 0})
 
 
 def make_opponents() -> dict:

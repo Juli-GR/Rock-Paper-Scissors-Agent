@@ -2,7 +2,7 @@
 import random
 from collections import defaultdict, deque
 
-from .env import MOVES, Move, Player
+from .env import MOVES, Move, Player, reward
 
 
 class QLearningAgent(Player):
@@ -68,3 +68,61 @@ class QLearningAgent(Player):
 
         return {key(state): {m.name: round(v, 4) for m, v in zip(MOVES, values)}
                 for state, values in self.q.items()}
+
+
+class RegretMatchingAgent(Player):
+    """Regret matching. Política estocástica: en cada estado juega cada acción con una
+    probabilidad, en lugar de elegir siempre la mejor.
+
+    El "regret" de una acción es cuánto más habría ganado jugándola en lugar de lo que
+    jugó. Se acumula por estado, y juega cada acción con probabilidad proporcional a su
+    regret positivo (si ninguno es positivo, 1/3 cada una).
+
+    El estado es el mismo que en QLearningAgent: las últimas `memory` jugadas del
+    oponente y las últimas `own_memory` propias. No necesita explorar: siempre ve qué
+    jugó el oponente, así que puede calcular el regret de las 3 acciones.
+
+    decay: olvido. Antes de sumar el regret nuevo, multiplica los del estado por `decay`,
+    así lo viejo pesa cada vez menos y se adapta más rápido si el oponente cambia.
+    Con 1.0 no olvida nada.
+    """
+
+    def __init__(self, memory=2, own_memory=1, decay=1.0, seed=None):
+        self.memory, self.own_memory, self.decay, self.seed = memory, own_memory, decay, seed
+        self.rng = random.Random(seed)
+        self.regrets = defaultdict(lambda: [0.0] * len(MOVES))  # estado -> regret de cada acción
+        self.history = deque(maxlen=memory)  # jugadas del oponente
+        self.own_history = deque(maxlen=own_memory)  # jugadas propias
+
+    @property
+    def state(self) -> tuple:
+        return tuple(self.history), tuple(self.own_history)
+
+    def policy(self, state) -> list[float]:
+        """Probabilidad de jugar cada acción en `state`."""
+        positive = [max(r, 0.0) for r in self.regrets[state]]
+        total = sum(positive)
+        return [p / total for p in positive] if total > 0 else [1 / len(MOVES)] * len(MOVES)
+
+    def act(self) -> Move:
+        return self.rng.choices(MOVES, weights=self.policy(self.state))[0]
+
+    def observe(self, own, other, reward_):
+        regrets = self.regrets[self.state]
+        for m in MOVES:
+            regrets[m] = self.decay * regrets[m] + reward(m, other) - reward_
+        self.history.append(other)
+        self.own_history.append(own)
+
+    def params(self):
+        return {"memory": self.memory, "own_memory": self.own_memory, "decay": self.decay,
+                "seed": self.seed}
+
+    def state_dict(self):
+        """La política: {"rival ROCK,PAPER | propio SCISSORS": {"ROCK": p, ...}, ...}."""
+        def names(moves):
+            return ",".join(m.name for m in moves) or "-"
+
+        return {f"rival {names(other)} | propio {names(own)}":
+                {m.name: round(p, 4) for m, p in zip(MOVES, self.policy((other, own)))}
+                for other, own in self.regrets}
