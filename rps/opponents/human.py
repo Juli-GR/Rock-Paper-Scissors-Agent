@@ -37,3 +37,30 @@ class HumanLikePlayer(Player):
 
     def params(self):
         return {"bias": self.bias, "stay": self.stay, "shift": self.shift, "seed": self.seed}
+
+
+class Quit(Exception):
+    """El jugador de la terminal pidió terminar la partida."""
+
+
+class TerminalPlayer(Player):
+    """Un humano jugando desde la terminal: escribe R, P o S (Q para salir) y ve
+    `tu jugada, la del agente, (W  D  L)`."""
+
+    KEYS = {"R": Move.ROCK, "P": Move.PAPER, "S": Move.SCISSORS}
+
+    def __init__(self):
+        self.score = [0, 0, 0]  # wins, draws, losses
+
+    def act(self) -> Move:
+        while True:
+            key = input("> ").strip().upper()
+            if key == "Q":
+                raise Quit
+            if key in self.KEYS:
+                return self.KEYS[key]
+
+    def observe(self, own, other, reward):
+        self.score[1 - reward] += 1  # +1 -> 0, 0 -> 1, -1 -> 2
+        w, d, l = self.score
+        print(f"{own.name[0]} {other.name[0]}         (W {w}  D {d}  L {l})")
