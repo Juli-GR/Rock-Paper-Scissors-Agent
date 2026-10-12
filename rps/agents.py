@@ -3,6 +3,7 @@ import random
 from collections import defaultdict, deque
 
 from .env import MOVES, Move, Player, reward
+from .opponents import MarkovPlayer
 
 
 class QLearningAgent(Player):
@@ -126,3 +127,60 @@ class RegretMatchingAgent(Player):
         return {f"rival {names(other)} | propio {names(own)}":
                 {m.name: round(p, 4) for m, p in zip(MOVES, self.policy((other, own)))}
                 for other, own in self.regrets}
+
+
+class MetaAgent(Player):
+    """Meta-agente estilo Iocaine Powder: tiene varias estrategias adentro y en cada ronda
+    juega la que mejor viene funcionando.
+
+    Cada estrategia propone una jugada `m`, y de cada una salen 3 candidatas:
+      +0  jugar `m` tal cual
+      +1  jugar lo que le gana a `m` (por si el rival ya predijo `m` y va a jugar lo que le gana)
+      +2  jugar lo que le gana a eso (un nivel más de "él sabe que yo sé")
+
+    Como siempre ve qué jugó el rival, puede calcular cuánto habría ganado cada candidata,
+    aunque no la haya jugado. Lleva ese puntaje con olvido (`decay`) y juega la mejor.
+
+    Todas las estrategias observan lo que realmente pasó (la jugada del meta-agente), así
+    que siguen aprendiendo aunque no las elija.
+    """
+
+    def __init__(self, decay=0.9, seed=None):
+        self.decay, self.seed = decay, seed
+        self.rng = random.Random(seed)
+        sub = lambda: self.rng.randrange(2**32)  # una semilla distinta para cada estrategia
+        self.strategies = {
+            "frequency": MarkovPlayer(order=0, seed=sub()),
+            "markov1": MarkovPlayer(order=1, seed=sub()),
+            "markov2+own": MarkovPlayer(order=2, own_order=1, seed=sub()),
+            "regret": RegretMatchingAgent(seed=sub()),
+            "regret_decay": RegretMatchingAgent(decay=0.95, seed=sub()),
+            "qlearning": QLearningAgent(memory=2, own_memory=1, patience=20, seed=sub()),
+        }
+        self.candidates = [(name, shift) for name in self.strategies for shift in range(3)]
+        self.scores = {c: 0.0 for c in self.candidates}
+        self.used = {c: 0 for c in self.candidates}  # veces que se jugó cada candidata
+        self.proposals = {}
+
+    def act(self) -> Move:
+        moves = {name: s.act() for name, s in self.strategies.items()}
+        self.proposals = {(name, shift): Move((moves[name] + shift) % 3)
+                          for name, shift in self.candidates}
+        best = max(self.scores.values())
+        choice = self.rng.choice([c for c in self.candidates if self.scores[c] == best])
+        self.used[choice] += 1
+        return self.proposals[choice]
+
+    def observe(self, own, other, reward_):
+        for c, move in self.proposals.items():
+            self.scores[c] = self.decay * self.scores[c] + reward(move, other)
+        for s in self.strategies.values():
+            s.observe(own, other, reward_)
+
+    def params(self):
+        return {"decay": self.decay, "strategies": ",".join(self.strategies), "seed": self.seed}
+
+    def state_dict(self):
+        """Cuántas rondas jugó cada candidata, de la más usada a la menos usada."""
+        used = sorted(self.used.items(), key=lambda kv: -kv[1])
+        return {f"{name} +{shift}": n for (name, shift), n in used if n}
